@@ -150,19 +150,12 @@ public class BookingDAO {
                 booking.setSeatNumber(rs.getString("SeatNumber"));
                 booking.setStatus(rs.getString("BookingStatus"));
                 
-                // Manually set the remaining fields
+                // Manually set the client ID since we already know it
                 booking.setClientId(clientId);
-                booking.setFlightId(rs.getInt("FlightId"));
                 
-                // Parse JSON data if available
-                String jsonData = rs.getString("PassengerDetails");
-                if (jsonData != null && !jsonData.isEmpty()) {
-                    try {
-                        booking.setPassengerDetails(objectMapper.readTree(jsonData));
-                    } catch (JsonProcessingException e) {
-                        logger.error("Error parsing passenger details JSON", e);
-                    }
-                }
+                // We can't get FlightId from the result set as it's not included in the stored procedure
+                // Instead of trying to get it, we'll leave it as the default value (0)
+                // or we can query for it separately if needed
                 
                 bookings.add(booking);
             }

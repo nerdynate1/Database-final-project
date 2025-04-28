@@ -1,0 +1,88 @@
+2025-04-27 23:19:03.237 [main] INFO  e.c.f.business.FlightService - Searching flights from JFK to LAX on 2025-04-27
+2025-04-27 23:19:03.245 [main] INFO  e.c.flightservice.dal.AirportDAO - Getting airport with code: JFK
+2025-04-27 23:19:03.246 [main] INFO  e.c.f.dal.DatabaseConnector - Database properties loaded successfully
+2025-04-27 23:19:03.535 [main] ERROR e.c.flightservice.dal.AirportDAO - Error getting airport by code
+java.sql.SQLException: Access denied for user 'root'@'localhost' (using password: NO)
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:129)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:122)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:829)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:449)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:242)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:198)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:613)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:199)
+	at edu.csc3810.flightservice.dal.DatabaseConnector.getConnection(DatabaseConnector.java:69)
+	at edu.csc3810.flightservice.dal.AirportDAO.getAirportByCode(AirportDAO.java:153)
+	at edu.csc3810.flightservice.business.FlightService.searchFlights(FlightService.java:65)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.searchFlights(FlightServiceApp.java:137)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.run(FlightServiceApp.java:78)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.main(FlightServiceApp.java:62)
+2025-04-27 23:19:03.536 [main] ERROR e.c.f.presentation.FlightServiceApp - Error searching flights
+edu.csc3810.flightservice.business.ServiceException: Origin airport not found: JFK
+	at edu.csc3810.flightservice.business.FlightService.searchFlights(FlightService.java:67)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.searchFlights(FlightServiceApp.java:137)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.run(FlightServiceApp.java:78)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.main(FlightServiceApp.java:62)
+2025-04-27 23:20:34.834 [main] INFO  e.c.f.business.ClientService - Getting all clients
+2025-04-27 23:20:34.834 [main] INFO  e.c.flightservice.dal.ClientDAO - Getting all clients
+2025-04-27 23:20:34.845 [main] ERROR e.c.flightservice.dal.ClientDAO - Error retrieving clients
+java.sql.SQLException: Access denied for user 'root'@'localhost' (using password: NO)
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:129)
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:122)
+	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:829)
+	at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:449)
+	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:242)
+	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:198)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:613)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:199)
+	at edu.csc3810.flightservice.dal.DatabaseConnector.getConnection(DatabaseConnector.java:69)
+	at edu.csc3810.flightservice.dal.ClientDAO.getAllClients(ClientDAO.java:36)
+	at edu.csc3810.flightservice.business.ClientService.getAllClients(ClientService.java:38)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.viewBookings(FlightServiceApp.java:261)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.run(FlightServiceApp.java:84)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.main(FlightServiceApp.java:62)
+2025-04-27 23:22:49.747 [main] INFO  e.c.f.business.ClientService - Getting all clients
+2025-04-27 23:22:49.747 [main] INFO  e.c.flightservice.dal.ClientDAO - Getting all clients
+2025-04-27 23:22:49.748 [main] INFO  e.c.f.dal.DatabaseConnector - Database driver: com.mysql.cj.jdbc.Driver
+2025-04-27 23:22:49.749 [main] INFO  e.c.f.dal.DatabaseConnector - Database URL: jdbc:mysql://localhost:3306/FlightService
+2025-04-27 23:22:49.749 [main] INFO  e.c.f.dal.DatabaseConnector - Database username: root
+2025-04-27 23:22:49.749 [main] INFO  e.c.f.dal.DatabaseConnector - Database password length: 8
+2025-04-27 23:22:49.749 [main] INFO  e.c.f.dal.DatabaseConnector - Database properties loaded successfully
+2025-04-27 23:22:59.083 [main] INFO  e.c.f.business.BookingService - Getting bookings for client ID: 5
+2025-04-27 23:22:59.083 [main] INFO  e.c.flightservice.dal.ClientDAO - Getting client with ID: 5
+2025-04-27 23:22:59.097 [main] INFO  e.c.flightservice.dal.BookingDAO - Getting bookings for client ID: 5
+2025-04-27 23:22:59.116 [main] ERROR e.c.flightservice.dal.BookingDAO - Error retrieving client bookings
+java.sql.SQLException: Column 'FlightId' not found.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:129)
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:97)
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:89)
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:63)
+	at com.mysql.cj.jdbc.result.ResultSetImpl.findColumn(ResultSetImpl.java:584)
+	at com.mysql.cj.jdbc.result.ResultSetImpl.getInt(ResultSetImpl.java:851)
+	at edu.csc3810.flightservice.dal.BookingDAO.getClientBookings(BookingDAO.java:155)
+	at edu.csc3810.flightservice.business.BookingService.getClientBookings(BookingService.java:205)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.viewBookings(FlightServiceApp.java:275)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.run(FlightServiceApp.java:84)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.main(FlightServiceApp.java:62)
+2025-04-27 23:23:27.750 [main] INFO  e.c.f.business.FlightService - Searching flights from JFK to LAX on 2025-04-27
+2025-04-27 23:23:27.756 [main] INFO  e.c.flightservice.dal.AirportDAO - Getting airport with code: JFK
+2025-04-27 23:23:27.767 [main] INFO  e.c.flightservice.dal.AirportDAO - Getting airport with code: LAX
+2025-04-27 23:23:27.778 [main] INFO  e.c.flightservice.dal.FlightDAO - Getting available flights from JFK to LAX on 2025-04-27
+2025-04-27 23:23:42.420 [main] INFO  e.c.f.business.ClientService - Getting all clients
+2025-04-27 23:23:42.420 [main] INFO  e.c.flightservice.dal.ClientDAO - Getting all clients
+2025-04-27 23:23:44.768 [main] INFO  e.c.f.business.BookingService - Getting bookings for client ID: 1
+2025-04-27 23:23:44.768 [main] INFO  e.c.flightservice.dal.ClientDAO - Getting client with ID: 1
+2025-04-27 23:23:44.777 [main] INFO  e.c.flightservice.dal.BookingDAO - Getting bookings for client ID: 1
+2025-04-27 23:23:44.788 [main] ERROR e.c.flightservice.dal.BookingDAO - Error retrieving client bookings
+java.sql.SQLException: Column 'FlightId' not found.
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:129)
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:97)
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:89)
+	at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:63)
+	at com.mysql.cj.jdbc.result.ResultSetImpl.findColumn(ResultSetImpl.java:584)
+	at com.mysql.cj.jdbc.result.ResultSetImpl.getInt(ResultSetImpl.java:851)
+	at edu.csc3810.flightservice.dal.BookingDAO.getClientBookings(BookingDAO.java:155)
+	at edu.csc3810.flightservice.business.BookingService.getClientBookings(BookingService.java:205)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.viewBookings(FlightServiceApp.java:275)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.run(FlightServiceApp.java:84)
+	at edu.csc3810.flightservice.presentation.FlightServiceApp.main(FlightServiceApp.java:62)

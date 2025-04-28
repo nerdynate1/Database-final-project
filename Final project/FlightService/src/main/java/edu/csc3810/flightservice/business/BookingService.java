@@ -136,11 +136,10 @@ public class BookingService {
         // Add special requirements as an array if provided
         if (specialRequirements != null && !specialRequirements.trim().isEmpty()) {
             String[] requirements = specialRequirements.split(",");
-            passengerDetails.putArray("specialRequirements").addAll(
-                    objectMapper.createArrayNode().addAll(
-                            java.util.Arrays.stream(requirements)
-                                    .map(r -> objectMapper.valueToTree(r.trim()))
-                                    .collect(java.util.stream.Collectors.toList())));
+            var specialReqArray = passengerDetails.putArray("specialRequirements");
+            for (String requirement : requirements) {
+                specialReqArray.add(requirement.trim());
+            }
         }
         
         // Update passenger details

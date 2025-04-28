@@ -54,6 +54,11 @@ public class DatabaseConnector {
             dbUsername = props.getProperty("db.username");
             dbPassword = props.getProperty("db.password");
             
+            logger.info("Database driver: {}", dbDriver);
+            logger.info("Database URL: {}", dbUrl);
+            logger.info("Database username: {}", dbUsername);
+            logger.info("Database password length: {}", dbPassword != null ? dbPassword.length() : 0);
+            
             logger.info("Database properties loaded successfully");
         }
     }
