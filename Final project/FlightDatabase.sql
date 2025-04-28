@@ -20,7 +20,8 @@ CREATE TABLE Airports (
     City VARCHAR(50) NOT NULL,
     Country VARCHAR(50) NOT NULL,
     PRIMARY KEY(AirportId),
-    UNIQUE(AirportCode)
+    UNIQUE(AirportCode),
+    FULLTEXT INDEX idx_airport_search (AirportName, City, Country)
 );
 
 CREATE TABLE Plane(
@@ -54,6 +55,7 @@ CREATE TABLE Bookings(
     BookingDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     SeatNumber VARCHAR(10),
     STATUS ENUM("Confirmed", "Cancelled") DEFAULT "Confirmed",
+    PassengerDetails JSON,
     PRIMARY KEY(BookingId),
     FOREIGN KEY(ClientId) REFERENCES Clients(ClientId),
     FOREIGN KEY(FlightId) REFERENCES Flights(FlightId),
@@ -124,6 +126,29 @@ LEFT JOIN
     Bookings b ON f.FlightId = b.FlightId
 GROUP BY 
     f.FlightId, f.FlightNumber, Origin, Destination, f.DepartureDay, f.ArrivalDay, TotalSeats, f.BasePrice, f.STATUS;
+
+-- View for flight statistics and analytics
+CREATE VIEW FlightStatistics AS
+SELECT 
+    f.FlightNumber,
+    o.City AS Origin,
+    d.City AS Destination,
+    COUNT(b.BookingId) AS TotalBookings,
+    AVG(f.BasePrice) AS AveragePrice,
+    SUM(CASE WHEN b.STATUS = 'Confirmed' THEN 1 ELSE 0 END) / COUNT(b.BookingId) * 100 AS OccupancyRate,
+    (SELECT COUNT(*) FROM Bookings WHERE FlightId = f.FlightId AND STATUS = 'Cancelled') AS CancellationCount,
+    MONTHNAME(f.DepartureDay) AS TravelMonth,
+    YEAR(f.DepartureDay) AS TravelYear
+FROM 
+    Flights f
+JOIN 
+    Airports o ON f.OriginAirportId = o.AirportId
+JOIN 
+    Airports d ON f.DestinationAirportId = d.AirportId
+LEFT JOIN 
+    Bookings b ON f.FlightId = b.FlightId
+GROUP BY 
+    f.FlightNumber, Origin, Destination, TravelMonth, TravelYear;
 
 -- STORED PROCEDURES
 
@@ -344,6 +369,99 @@ BEGIN
 END //
 DELIMITER ;
 
+-- 6. Update Passenger Details with JSON
+DELIMITER //
+CREATE PROCEDURE UpdatePassengerDetails(
+    IN bookingIdParam INT,
+    IN passengerDetailsJSON JSON
+)
+BEGIN
+    -- Validate JSON structure
+    IF JSON_VALID(passengerDetailsJSON) = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid JSON format for passenger details';
+    END IF;
+    
+    -- Update the booking with passenger details
+    UPDATE Bookings
+    SET PassengerDetails = passengerDetailsJSON
+    WHERE BookingId = bookingIdParam;
+    
+    -- Log the update
+    INSERT INTO AuditLog (TableName, RecordId, Action, ChangedBy, Details)
+    VALUES ('Bookings', bookingIdParam, 'UPDATE', USER(), 'Updated passenger details');
+END //
+DELIMITER ;
+
+-- 7. Flight Delay Handling
+DELIMITER //
+CREATE PROCEDURE DelayFlight(
+    IN flightIdParam INT,
+    IN delayMinutes INT
+)
+BEGIN
+    DECLARE oldDeparture DATETIME;
+    DECLARE oldArrival DATETIME;
+    DECLARE flightNum VARCHAR(10);
+    
+    -- Get current schedule
+    SELECT DepartureDay, ArrivalDay, FlightNumber
+    INTO oldDeparture, oldArrival, flightNum
+    FROM Flights
+    WHERE FlightId = flightIdParam;
+    
+    -- Update with delay
+    UPDATE Flights
+    SET 
+        DepartureDay = DATE_ADD(oldDeparture, INTERVAL delayMinutes MINUTE),
+        ArrivalDay = DATE_ADD(oldArrival, INTERVAL delayMinutes MINUTE),
+        STATUS = 'Delayed'
+    WHERE FlightId = flightIdParam;
+    
+    -- Notify affected bookings
+    INSERT INTO AuditLog (TableName, RecordId, Action, ChangedBy, Details)
+    VALUES ('Flights', flightIdParam, 'DELAY', USER(), 
+            CONCAT('Flight ', flightNum, ' delayed by ', delayMinutes, ' minutes'));
+    
+    -- Add compensation points for delays over 60 minutes
+    IF delayMinutes > 60 THEN
+        INSERT INTO Rewards (ClientId, PointsEarned, Description)
+        SELECT 
+            b.ClientId, 
+            FLOOR(f.BasePrice * 0.05), -- 5% compensation in points
+            CONCAT('Compensation for delayed flight ', f.FlightNumber)
+        FROM 
+            Bookings b
+        JOIN 
+            Flights f ON b.FlightId = f.FlightId
+        WHERE 
+            f.FlightId = flightIdParam
+            AND b.STATUS = 'Confirmed';
+    END IF;
+END //
+DELIMITER ;
+
+-- 8. Search Airports using Full-Text Search
+DELIMITER //
+CREATE PROCEDURE SearchAirports(
+    IN searchTerm VARCHAR(100)
+)
+BEGIN
+    SELECT 
+        AirportId,
+        AirportCode,
+        AirportName,
+        City,
+        Country,
+        MATCH(AirportName, City, Country) AGAINST(searchTerm IN NATURAL LANGUAGE MODE) AS Relevance
+    FROM 
+        Airports
+    WHERE 
+        MATCH(AirportName, City, Country) AGAINST(searchTerm IN NATURAL LANGUAGE MODE)
+    ORDER BY 
+        Relevance DESC;
+END //
+DELIMITER ;
+
 -- TRIGGERS
 
 -- 1. Update seat availability when flight status changes
@@ -522,5 +640,122 @@ INSERT INTO Bookings (ClientId, FlightId, SeatNumber) VALUES
 (1, 5, '8A'),
 (2, 6, '10B'),
 (3, 7, '15C');
+
+-- INSERT SAMPLE PASSENGER DETAILS
+UPDATE Bookings 
+SET PassengerDetails = JSON_OBJECT(
+    'firstName', 'John',
+    'lastName', 'Smith',
+    'passportNumber', 'AB1234567',
+    'nationality', 'USA',
+    'dateOfBirth', '1985-03-15',
+    'specialRequirements', JSON_ARRAY('Vegetarian meal', 'Window seat')
+)
+WHERE BookingId = 1;
+
+UPDATE Bookings 
+SET PassengerDetails = JSON_OBJECT(
+    'firstName', 'Emily',
+    'lastName', 'Johnson',
+    'passportNumber', 'CD7654321',
+    'nationality', 'UK',
+    'dateOfBirth', '1990-07-22',
+    'specialRequirements', JSON_ARRAY('Wheelchair assistance')
+)
+WHERE BookingId = 2;
+
+-- TEST SCRIPTS
+
+-- NOTE: Uncomment and run these sections one at a time to test various features
+
+-- Test #1: Testing the airport search functionality
+/*
+CALL SearchAirports('New York');
+CALL SearchAirports('London');
+CALL SearchAirports('International');
+*/
+
+-- Test #2: Testing flight availability search
+/*
+CALL GetAvailableFlights('JFK', 'LAX', '2023-06-15');
+CALL GetAvailableFlights('LHR', 'CDG', '2023-06-17');
+*/
+
+-- Test #3: Testing booking a flight
+/*
+SET @new_booking_id = 0;
+CALL BookFlight(4, 1, '16C', @new_booking_id);
+SELECT @new_booking_id as 'New Booking ID';
+*/
+
+-- Test #4: Testing passenger details update
+/*
+CALL UpdatePassengerDetails(3, JSON_OBJECT(
+    'firstName', 'Michael',
+    'lastName', 'Brown',
+    'passportNumber', 'EF9876543',
+    'nationality', 'Canada',
+    'dateOfBirth', '1982-11-30',
+    'specialRequirements', JSON_ARRAY('Aisle seat', 'Lactose-free meal')
+));
+SELECT BookingId, JSON_EXTRACT(PassengerDetails, '$.firstName') as FirstName, 
+       JSON_EXTRACT(PassengerDetails, '$.specialRequirements') as SpecialRequirements 
+FROM Bookings 
+WHERE BookingId = 3;
+*/
+
+-- Test #5: Testing flight delay procedure
+/*
+SELECT FlightId, FlightNumber, DepartureDay, ArrivalDay, STATUS FROM Flights WHERE FlightId = 3;
+CALL DelayFlight(3, 120);
+SELECT FlightId, FlightNumber, DepartureDay, ArrivalDay, STATUS FROM Flights WHERE FlightId = 3;
+SELECT * FROM AuditLog WHERE TableName = 'Flights' AND Action = 'DELAY';
+SELECT * FROM Rewards WHERE Description LIKE '%Compensation for delayed flight%';
+*/
+
+-- Test #6: Testing booking cancellation
+/*
+SET @cancel_success = FALSE;
+CALL CancelBooking(1, @cancel_success);
+SELECT @cancel_success as 'Cancellation Success';
+SELECT * FROM Bookings WHERE BookingId = 1;
+SELECT * FROM AuditLog WHERE TableName = 'Bookings' AND Action = 'UPDATE';
+*/
+
+-- Test #7: Testing reward points redemption
+/*
+SET @discount_amount = 0;
+SET @remaining_points = 0;
+CALL RedeemPointsForDiscount(2, 50, 2, @discount_amount, @remaining_points);
+SELECT @discount_amount as 'Discount Amount', @remaining_points as 'Remaining Points';
+SELECT * FROM Rewards WHERE Description LIKE '%Points redeemed for discount%';
+*/
+
+-- Test #8: Viewing flight statistics
+/*
+SELECT * FROM FlightStatistics;
+*/
+
+-- Test #9: Extracting specific JSON data
+/*
+SELECT 
+    b.BookingId,
+    f.FlightNumber,
+    JSON_EXTRACT(b.PassengerDetails, '$.firstName') as FirstName,
+    JSON_EXTRACT(b.PassengerDetails, '$.lastName') as LastName,
+    JSON_EXTRACT(b.PassengerDetails, '$.passportNumber') as Passport,
+    b.SeatNumber
+FROM 
+    Bookings b
+JOIN 
+    Flights f ON b.FlightId = f.FlightId
+WHERE 
+    b.PassengerDetails IS NOT NULL;
+*/
+
+-- Test #10: Viewing client reward points
+/*
+SELECT * FROM ClientRewardPoints;
+*/
 
 
